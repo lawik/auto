@@ -8,6 +8,8 @@ defmodule Auto.InputListener do
   end
 
   def init(opts) do
+    # TODO: Rename to be about streamdecks only
+    # TODO: Subscribe to events about keylight changes to push those to display
     send(self(), :check_devices)
     send(self(), :poll)
     {:ok, %{pedal: nil, plus: nil}}

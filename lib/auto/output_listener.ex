@@ -3,6 +3,7 @@ defmodule Auto.OutputListener do
 
   @check_interval 10_000
   def start_link(opts) do
+    # TODO: Rename to be about Keylight, only
     GenServer.start_link(__MODULE__, opts, opts)
   end
 
@@ -19,6 +20,7 @@ defmodule Auto.OutputListener do
   end
 
   def handle_info({:plus, message}, state) do
+    # TODO: Emit events about the changes
     case message do
       %{event: :button, part: :keys, states: [:down | _]} ->
         Keylight.on(state.keylights)
