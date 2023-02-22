@@ -14,6 +14,7 @@ defmodule Auto.OutputListener do
 
   def handle_info(:check_devices, state) do
     devices = Keylight.discover()
+    Process.send_after(self(), :check_devices, @check_interval)
     {:noreply, %{state | keylights: devices}}
   end
 
