@@ -1,4 +1,4 @@
-defmodule Auto.InputListener do
+defmodule Auto.Devices.Streamdecks do
   use GenServer
 
   @check_interval 10_000
@@ -8,8 +8,8 @@ defmodule Auto.InputListener do
   end
 
   def init(opts) do
-    # TODO: Rename to be about streamdecks only
     # TODO: Subscribe to events about keylight changes to push those to display
+    Phoenix.PubSub.subscribe(Auto.PubSub, "calendar")
     send(self(), :check_devices)
     send(self(), :poll)
     {:ok, %{pedal: nil, plus: nil}}
@@ -61,6 +61,43 @@ defmodule Auto.InputListener do
     end
 
     Process.send_after(self(), :poll, @poll_interval)
+    {:noreply, state}
+  end
+
+  def handle_info({:current_events, events}, state) do
+    summaries =
+      events
+      |> Enum.map(& &1.summary)
+      |> Enum.join(", ")
+
+    IO.inspect(summaries, label: "upcoming")
+
+    img =
+      "current: #{summaries}"
+      |> Image.Text.simple_text!(width: 380, height: 40, autofit: true, align: :left)
+      |> Image.write!(:memory, suffix: ".jpg", quality: 100)
+
+    state.plus.module.set_lcd_image(state.plus, 10, 5, 380, 40, img)
+
+    {:noreply, state}
+  end
+
+  def handle_info({:upcoming_events, events}, state) do
+    summaries =
+      events
+      |> Enum.take(2)
+      |> Enum.map(& &1.summary)
+      |> Enum.join(", ")
+
+    IO.inspect(summaries, label: "upcoming")
+
+    img =
+      "next: #{summaries}"
+      |> Image.Text.simple_text!(width: 380, height: 40, autofit: true, align: :left)
+      |> Image.write!(:memory, suffix: ".jpg", quality: 100)
+
+    state.plus.module.set_lcd_image(state.plus, 10, 55, 380, 40, img)
+
     {:noreply, state}
   end
 

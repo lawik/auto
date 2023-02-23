@@ -1,9 +1,8 @@
-defmodule Auto.OutputListener do
+defmodule Auto.Devices.Keylights do
   use GenServer
 
   @check_interval 10_000
   def start_link(opts) do
-    # TODO: Rename to be about Keylight, only
     GenServer.start_link(__MODULE__, opts, opts)
   end
 

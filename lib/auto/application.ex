@@ -7,6 +7,14 @@ defmodule Auto.Application do
 
   @impl true
   def start(_type, _args) do
+    calendars =
+      [
+        "CALENDAR_URL_1",
+        "CALENDAR_URL_2",
+        "CALENDAR_URL_3"
+      ]
+      |> Enum.map(&System.fetch_env!/1)
+
     children = [
       # Start the Telemetry supervisor
       AutoWeb.Telemetry,
@@ -14,10 +22,11 @@ defmodule Auto.Application do
       Auto.Repo,
       # Start the PubSub system
       {Phoenix.PubSub, name: Auto.PubSub},
-      Auto.InputListener,
-      Auto.OutputListener,
       # Start Finch
       {Finch, name: Auto.Finch},
+      Auto.Devices.Streamdecks,
+      Auto.Devices.Keylights,
+      {Auto.Sources.Calendars, calendars: calendars},
       # Start the Endpoint (http/https)
       AutoWeb.Endpoint
       # Start a worker by calling: Auto.Worker.start_link(arg)
