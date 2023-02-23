@@ -54,7 +54,8 @@ defmodule Auto.MixProject do
       {:icalendar, "~> 1.1.0"},
       {:image, "~> 0.24"},
       {:keylight, github: "lawik/keylight"},
-      {:streamdex, github: "lawik/streamdex"}
+      {:streamdex, github: "lawik/streamdex"},
+      {:bs_icons, path: "../bs_icons"}
     ]
   end
 

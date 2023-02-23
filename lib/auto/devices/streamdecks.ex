@@ -7,7 +7,8 @@ defmodule Auto.Devices.Streamdecks do
     GenServer.start_link(__MODULE__, opts, opts)
   end
 
-  def init(opts) do
+  @spec init(any) :: {:ok, %{pedal: nil, plus: nil}}
+  def init(_opts) do
     # TODO: Subscribe to events about keylight changes to push those to display
     Phoenix.PubSub.subscribe(Auto.PubSub, "calendar")
     send(self(), :check_devices)
@@ -38,7 +39,32 @@ defmodule Auto.Devices.Streamdecks do
 
     new_plus =
       if is_nil(state.plus) and plus do
-        Streamdex.start(plus)
+        plus = Streamdex.start(plus)
+
+        on =
+          "lightbulb"
+          |> BsIcons.svg_icon()
+          |> BsIcons.color("white")
+          |> BsIcons.size(120, 120)
+          |> BsIcons.to_png()
+          |> Image.from_binary()
+          |> elem(1)
+          |> Image.write!(:memory, suffix: ".jpg", quality: 100)
+
+        off =
+          "lightbulb-off"
+          |> BsIcons.svg_icon()
+          |> BsIcons.color("white")
+          |> BsIcons.size(120, 120)
+          |> BsIcons.to_png()
+          |> Image.from_binary()
+          |> elem(1)
+          |> Image.write!(:memory, suffix: ".jpg", quality: 100)
+
+        plus.module.set_key_image(plus, 0, on)
+        plus.module.set_key_image(plus, 1, off)
+
+        plus
       else
         state.plus
       end
@@ -74,10 +100,10 @@ defmodule Auto.Devices.Streamdecks do
 
     img =
       "current: #{summaries}"
-      |> Image.Text.simple_text!(width: 380, height: 40, autofit: true, align: :left)
+      |> Image.Text.simple_text!(width: 780, height: 40, autofit: true, align: :left)
       |> Image.write!(:memory, suffix: ".jpg", quality: 100)
 
-    state.plus.module.set_lcd_image(state.plus, 10, 5, 380, 40, img)
+    state.plus.module.set_lcd_image(state.plus, 10, 5, 780, 40, img)
 
     {:noreply, state}
   end
