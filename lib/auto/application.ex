@@ -24,8 +24,10 @@ defmodule Auto.Application do
       {Phoenix.PubSub, name: Auto.PubSub},
       # Start Finch
       {Finch, name: Auto.Finch},
-      Auto.Devices.Streamdecks,
+      Dotool,
+      Auto.Sinks.Computer,
       Auto.Devices.Keylights,
+      Auto.Devices.Streamdecks,
       {Auto.Sources.Calendars, calendars: calendars},
       # Start the Endpoint (http/https)
       AutoWeb.Endpoint

@@ -55,6 +55,7 @@ defmodule Auto.MixProject do
       {:image, "~> 0.24"},
       {:keylight, github: "lawik/keylight"},
       {:streamdex, github: "lawik/streamdex"},
+      {:dotool, github: "lawik/dotool_elixir"},
       {:bs_icons, path: "../bs_icons"}
     ]
   end

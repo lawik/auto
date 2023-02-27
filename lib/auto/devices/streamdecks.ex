@@ -11,9 +11,11 @@ defmodule Auto.Devices.Streamdecks do
   def init(_opts) do
     # TODO: Subscribe to events about keylight changes to push those to display
     Phoenix.PubSub.subscribe(Auto.PubSub, "calendar")
+    Phoenix.PubSub.subscribe(Auto.PubSub, "computer")
+
     send(self(), :check_devices)
     send(self(), :poll)
-    {:ok, %{pedal: nil, plus: nil}}
+    {:ok, %{pedal: nil, plus: nil, show_play?: true}}
   end
 
   # Detect new devices, ensure started
@@ -61,8 +63,19 @@ defmodule Auto.Devices.Streamdecks do
           |> elem(1)
           |> Image.write!(:memory, suffix: ".jpg", quality: 100)
 
+        play =
+          "play-circle"
+          |> BsIcons.svg_icon()
+          |> BsIcons.color("white")
+          |> BsIcons.size(120, 120)
+          |> BsIcons.to_png()
+          |> Image.from_binary()
+          |> elem(1)
+          |> Image.write!(:memory, suffix: ".jpg", quality: 100)
+
         plus.module.set_key_image(plus, 0, on)
         plus.module.set_key_image(plus, 1, off)
+        plus.module.set_key_image(plus, 2, play)
 
         plus
       else
@@ -96,8 +109,6 @@ defmodule Auto.Devices.Streamdecks do
       |> Enum.map(& &1.summary)
       |> Enum.join(", ")
 
-    IO.inspect(summaries, label: "upcoming")
-
     img =
       "current: #{summaries}"
       |> Image.Text.simple_text!(width: 780, height: 40, autofit: true, align: :left)
@@ -115,14 +126,44 @@ defmodule Auto.Devices.Streamdecks do
       |> Enum.map(& &1.summary)
       |> Enum.join(", ")
 
-    IO.inspect(summaries, label: "upcoming")
-
     img =
       "next: #{summaries}"
-      |> Image.Text.simple_text!(width: 380, height: 40, autofit: true, align: :left)
+      |> Image.Text.simple_text!(width: 780, height: 40, autofit: true, align: :left)
       |> Image.write!(:memory, suffix: ".jpg", quality: 100)
 
-    state.plus.module.set_lcd_image(state.plus, 10, 55, 380, 40, img)
+    state.plus.module.set_lcd_image(state.plus, 10, 55, 780, 40, img)
+
+    {:noreply, state}
+  end
+
+  def handle_info(:toggle_play, state) do
+    if state.plus do
+      if state.show_play? do
+        pause =
+          "pause-circle"
+          |> BsIcons.svg_icon()
+          |> BsIcons.color("white")
+          |> BsIcons.size(120, 120)
+          |> BsIcons.to_png()
+          |> Image.from_binary()
+          |> elem(1)
+          |> Image.write!(:memory, suffix: ".jpg", quality: 100)
+
+        state.plus.module.set_key_image(state.plus, 2, pause)
+      else
+        play =
+          "play-circle"
+          |> BsIcons.svg_icon()
+          |> BsIcons.color("white")
+          |> BsIcons.size(120, 120)
+          |> BsIcons.to_png()
+          |> Image.from_binary()
+          |> elem(1)
+          |> Image.write!(:memory, suffix: ".jpg", quality: 100)
+
+        state.plus.module.set_key_image(state.plus, 2, play)
+      end
+    end
 
     {:noreply, state}
   end
