@@ -1,6 +1,8 @@
 defmodule Auto.Devices.Streamdecks do
   use GenServer
 
+  alias Auto.Icons
+
   @check_interval 10_000
   @poll_interval 100
   def start_link(opts) do
@@ -43,35 +45,9 @@ defmodule Auto.Devices.Streamdecks do
       if is_nil(state.plus) and plus do
         plus = Streamdex.start(plus)
 
-        on =
-          "lightbulb"
-          |> BsIcons.svg_icon()
-          |> BsIcons.color("white")
-          |> BsIcons.size(120, 120)
-          |> BsIcons.to_png()
-          |> Image.from_binary()
-          |> elem(1)
-          |> Image.write!(:memory, suffix: ".jpg", quality: 100)
-
-        off =
-          "lightbulb-off"
-          |> BsIcons.svg_icon()
-          |> BsIcons.color("white")
-          |> BsIcons.size(120, 120)
-          |> BsIcons.to_png()
-          |> Image.from_binary()
-          |> elem(1)
-          |> Image.write!(:memory, suffix: ".jpg", quality: 100)
-
-        play =
-          "play-circle"
-          |> BsIcons.svg_icon()
-          |> BsIcons.color("white")
-          |> BsIcons.size(120, 120)
-          |> BsIcons.to_png()
-          |> Image.from_binary()
-          |> elem(1)
-          |> Image.write!(:memory, suffix: ".jpg", quality: 100)
+        on = Icons.i("lightbulb")
+        off = Icons.i("lightbulb-off")
+        play = Icons.i("play-circle")
 
         plus.module.set_key_image(plus, 0, on)
         plus.module.set_key_image(plus, 1, off)
@@ -139,28 +115,10 @@ defmodule Auto.Devices.Streamdecks do
   def handle_info(:toggle_play, state) do
     if state.plus do
       if state.show_play? do
-        pause =
-          "pause-circle"
-          |> BsIcons.svg_icon()
-          |> BsIcons.color("white")
-          |> BsIcons.size(120, 120)
-          |> BsIcons.to_png()
-          |> Image.from_binary()
-          |> elem(1)
-          |> Image.write!(:memory, suffix: ".jpg", quality: 100)
-
+        pause = Icons.i("pause-circle")
         state.plus.module.set_key_image(state.plus, 2, pause)
       else
-        play =
-          "play-circle"
-          |> BsIcons.svg_icon()
-          |> BsIcons.color("white")
-          |> BsIcons.size(120, 120)
-          |> BsIcons.to_png()
-          |> Image.from_binary()
-          |> elem(1)
-          |> Image.write!(:memory, suffix: ".jpg", quality: 100)
-
+        play = Icons.i("play-circle")
         state.plus.module.set_key_image(state.plus, 2, play)
       end
     end
