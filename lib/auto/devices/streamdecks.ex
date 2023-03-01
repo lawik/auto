@@ -17,7 +17,7 @@ defmodule Auto.Devices.Streamdecks do
 
     send(self(), :check_devices)
     send(self(), :poll)
-    {:ok, %{pedal: nil, plus: nil, show_play?: true}}
+    {:ok, %{pedal: nil, plus: nil, show_play?: true, unmuted?: true}}
   end
 
   # Detect new devices, ensure started
@@ -48,10 +48,12 @@ defmodule Auto.Devices.Streamdecks do
         on = Icons.i("lightbulb")
         off = Icons.i("lightbulb-off")
         play = Icons.i("play-circle")
+        unmuted = Icons.i("mic")
 
         plus.module.set_key_image(plus, 0, on)
         plus.module.set_key_image(plus, 1, off)
         plus.module.set_key_image(plus, 2, play)
+        plus.module.set_key_image(plus, 3, unmuted)
 
         plus
       else
@@ -87,7 +89,7 @@ defmodule Auto.Devices.Streamdecks do
 
     img =
       "current: #{summaries}"
-      |> Image.Text.simple_text!(width: 780, height: 40, autofit: true, align: :left)
+      |> Image.Text.simple_text!(width: 780, height: 40, autofit: true, align: :left, x: :left)
       |> Image.write!(:memory, suffix: ".jpg", quality: 100)
 
     state.plus.module.set_lcd_image(state.plus, 10, 5, 780, 40, img)
@@ -104,7 +106,7 @@ defmodule Auto.Devices.Streamdecks do
 
     img =
       "next: #{summaries}"
-      |> Image.Text.simple_text!(width: 780, height: 40, autofit: true, align: :left)
+      |> Image.Text.simple_text!(width: 780, height: 40, autofit: true, align: :left, x: :left)
       |> Image.write!(:memory, suffix: ".jpg", quality: 100)
 
     state.plus.module.set_lcd_image(state.plus, 10, 55, 780, 40, img)
@@ -123,7 +125,21 @@ defmodule Auto.Devices.Streamdecks do
       end
     end
 
-    {:noreply, state}
+    {:noreply, %{state | show_play?: not state.show_play?}}
+  end
+
+  def handle_info(:toggle_mute, state) do
+    if state.plus do
+      if state.unmuted? do
+        mute = Icons.i("mic-mute")
+        state.plus.module.set_key_image(state.plus, 3, mute)
+      else
+        mic = Icons.i("mic")
+        state.plus.module.set_key_image(state.plus, 3, mic)
+      end
+    end
+
+    {:noreply, %{state | unmuted?: not state.unmuted?}}
   end
 
   defp broadcast(nil, _), do: nil

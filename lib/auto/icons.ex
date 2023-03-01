@@ -10,11 +10,9 @@ defmodule Auto.Icons do
       |> to_png()
       |> Image.from_binary()
       |> elem(1)
-      |> Vix.Vips.Operation.extract_band!(3)
 
     Image.new!(120, 120)
-    |> Image.Draw.image(img, 10, 10)
-    |> elem(1)
+    |> Image.compose!(img, x: 10, y: 10)
     |> Image.write!(:memory, suffix: ".jpg", quality: 100)
   end
 end

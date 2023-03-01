@@ -19,8 +19,37 @@ defmodule Auto.Sinks.Computer do
           Dotool.cmd("key playpause")
           Phoenix.PubSub.broadcast!(Auto.PubSub, "computer", :toggle_play)
         end
+
+        if Enum.at(states, 3) == :down do
+          Logger.info("Dotooling micmute")
+          Dotool.cmd("key micmute")
+          Phoenix.PubSub.broadcast!(Auto.PubSub, "computer", :toggle_mute)
+        end
     end
 
+    {:noreply, state}
+  end
+
+  def handle_info({:pedal, message}, state) do
+    case message do
+      %{event: :button, states: states} ->
+        if Enum.at(states, 1) == :down do
+          Logger.info("Dotooling micmute")
+          Dotool.cmd("key micmute")
+          Phoenix.PubSub.broadcast!(Auto.PubSub, "computer", :toggle_mute)
+        end
+
+        if Enum.at(states, 1) == :up do
+          Logger.info("Dotooling micmute")
+          Dotool.cmd("key micmute")
+          Phoenix.PubSub.broadcast!(Auto.PubSub, "computer", :toggle_mute)
+        end
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info(_, state) do
     {:noreply, state}
   end
 end

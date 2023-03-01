@@ -82,4 +82,8 @@ defmodule Auto.Devices.Keylights do
 
     {:noreply, state}
   end
+
+  def handle_info(_, state) do
+    {:noreply, state}
+  end
 end
