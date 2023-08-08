@@ -25,6 +25,9 @@ defmodule Auto.Sinks.Computer do
           Dotool.cmd("key micmute")
           Phoenix.PubSub.broadcast!(Auto.PubSub, "computer", :toggle_mute)
         end
+
+      _ ->
+        nil
     end
 
     {:noreply, state}
@@ -44,6 +47,9 @@ defmodule Auto.Sinks.Computer do
           Dotool.cmd("key micmute")
           Phoenix.PubSub.broadcast!(Auto.PubSub, "computer", :toggle_mute)
         end
+
+      _ ->
+        nil
     end
 
     {:noreply, state}

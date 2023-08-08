@@ -64,19 +64,24 @@ defmodule Auto.Sources.Calendars do
 
     case response do
       {:ok, %{status: 200, body: body}} ->
-        body
+        {:ok, body}
 
       error_response ->
         Logger.error("Could not download URL: #{inspect(error_response)}")
+        :skip
     end
   end
 
-  defp to_events(data) do
+  defp to_events({:ok, data}) do
     data
     |> ICalendar.from_ics()
     |> expand_recurrence()
     |> reject_past_events()
     |> sort_by_start()
+  end
+
+  defp to_events(:skip) do
+    []
   end
 
   defp expand_recurrence(events, weeks_from_now \\ 1) do
