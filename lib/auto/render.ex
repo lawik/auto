@@ -29,11 +29,7 @@ defmodule Auto.Render do
   end
 
   def current(strip, current) do
-    current =
-      case String.trim(current) do
-        "" -> "-"
-        other -> other
-      end
+    IO.inspect(current)
 
     %{strip | current: current}
   end
@@ -61,15 +57,23 @@ defmodule Auto.Render do
       )
 
     current =
-      "Current: #{strip.current}"
-      |> Image.Text.text!(font_size: @font_size)
+      if is_nil(strip.current) || String.trim(strip.current) == "" do
+        Image.new!(1, 1)
+      else
+        "Current: #{strip.current}"
+        |> Image.Text.text!(font_size: @font_size)
+      end
 
     next =
-      "Next: #{strip.next}"
-      |> Image.Text.text!(
-        font_size: @font_size,
-        text_fill_color: "#a9a9a9"
-      )
+      if is_nil(strip.next) || String.trim(strip.next) == "" do
+        Image.new!(1, 1)
+      else
+        "Next: #{strip.next}"
+        |> Image.Text.text!(
+          font_size: @font_size,
+          text_fill_color: "#a9a9a9"
+        )
+      end
 
     img =
       Image.new!(800, 100)
@@ -83,8 +87,6 @@ defmodule Auto.Render do
         x: :left,
         y: :top
       )
-
-    Image.write(img, "priv/test.jpg", quality: 100)
 
     img
     |> Image.write!(:memory, suffix: ".jpg", quality: 100)
