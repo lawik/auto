@@ -29,10 +29,22 @@ defmodule Auto.Render do
   end
 
   def current(strip, current) do
+    current =
+      case String.trim(current) do
+        "" -> "-"
+        other -> other
+      end
+
     %{strip | current: current}
   end
 
   def next(strip, next) do
+    next =
+      case String.trim(next) do
+        "" -> "-"
+        other -> other
+      end
+
     %{strip | next: next}
   end
 
