@@ -1,4 +1,5 @@
 #!/bin/bash
 
+source /home/lawik/.asdf/asdf.sh
 source env.sh
-iex -S mix
+mix run --no-halt
