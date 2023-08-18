@@ -17,7 +17,8 @@ defmodule Auto.Devices.Streamdecks do
 
     send(self(), :check_devices)
     send(self(), :poll)
-    {:ok, %{pedal: nil, plus: nil, show_play?: true, unmuted?: true}}
+    strip = Auto.Render.new_strip()
+    {:ok, %{pedal: nil, plus: nil, show_play?: true, unmuted?: true, strip: strip}}
   end
 
   # Detect new devices, ensure started
@@ -55,6 +56,12 @@ defmodule Auto.Devices.Streamdecks do
         plus.module.set_key_image(plus, 2, play)
         plus.module.set_key_image(plus, 3, unmuted)
 
+        img =
+          state.strip
+          |> Auto.Render.render_strip()
+
+        plus.module.set_lcd_image(plus, 0, 0, 800, 100, img)
+
         plus
       else
         state.plus
@@ -78,40 +85,75 @@ defmodule Auto.Devices.Streamdecks do
     end
 
     Process.send_after(self(), :poll, @poll_interval)
-    {:noreply, state}
+    {:noreply, %{state | strip: Auto.Render.refresh_now(state.strip)}}
   end
 
   def handle_info({:current_events, events}, state) do
     summaries =
       events
-      |> Enum.map(& &1.summary)
+      |> Enum.map(fn e ->
+        start =
+          e.dtstart
+          |> DateTime.shift_zone!("Europe/Stockholm")
+          |> DateTime.to_iso8601()
+          |> String.slice(11, 5)
+
+        stop =
+          e.dtend
+          |> DateTime.shift_zone!("Europe/Stockholm")
+          |> DateTime.to_iso8601()
+          |> String.slice(11, 5)
+
+        "#{start}-#{stop} #{e.summary}"
+      end)
       |> Enum.join(", ")
 
-    img =
-      "current: #{summaries}"
-      |> Image.Text.simple_text!(width: 780, height: 40, autofit: true, align: :left, x: :left)
-      |> Image.write!(:memory, suffix: ".jpg", quality: 100)
+    #    img =
+    #      "current: #{summaries}"
+    #      |> Image.Text.simple_text!(width: 780, height: 40, autofit: true, align: :left, x: :left)
+    #      |> Image.write!(:memory, suffix: ".jpg", quality: 100)
 
-    state.plus.module.set_lcd_image(state.plus, 10, 5, 780, 40, img)
+    strip = Auto.Render.current(state.strip, summaries)
+    img = Auto.Render.render_strip(strip)
 
-    {:noreply, state}
+    # state.plus.module.set_lcd_image(state.plus, 10, 5, 780, 40, img)
+    state.plus.module.set_lcd_image(state.plus, 0, 0, 800, 100, img)
+
+    {:noreply, %{state | strip: strip}}
   end
 
   def handle_info({:upcoming_events, events}, state) do
     summaries =
       events
       |> Enum.take(2)
-      |> Enum.map(& &1.summary)
+      |> Enum.map(fn e ->
+        start =
+          e.dtstart
+          |> DateTime.shift_zone!("Europe/Stockholm")
+          |> DateTime.to_iso8601()
+          |> String.slice(11, 5)
+
+        stop =
+          e.dtend
+          |> DateTime.shift_zone!("Europe/Stockholm")
+          |> DateTime.to_iso8601()
+          |> String.slice(11, 5)
+
+        "#{start} #{e.summary}"
+      end)
       |> Enum.join(", ")
 
-    img =
-      "next: #{summaries}"
-      |> Image.Text.simple_text!(width: 780, height: 40, autofit: true, align: :left, x: :left)
-      |> Image.write!(:memory, suffix: ".jpg", quality: 100)
+    # img =
+    #  "next: #{summaries}"
+    #  |> Image.Text.simple_text!(width: 780, height: 40, autofit: true, align: :left, x: :left)
+    #  |> Image.write!(:memory, suffix: ".jpg", quality: 100)
+    strip = Auto.Render.next(state.strip, summaries)
+    img = Auto.Render.render_strip(strip)
 
-    state.plus.module.set_lcd_image(state.plus, 10, 55, 780, 40, img)
+    # state.plus.module.set_lcd_image(state.plus, 10, 55, 780, 40, img)
+    state.plus.module.set_lcd_image(state.plus, 0, 0, 800, 100, img)
 
-    {:noreply, state}
+    {:noreply, %{state | strip: strip}}
   end
 
   def handle_info(:toggle_play, state) do
