@@ -15,18 +15,23 @@ defmodule Auto.Sources.Pulseaudio do
     end
 
     def handle_info(:check_volumes, state) do
-        input_percent =
-            PA.default_source()
-            |> PA.find_source()
-            |> PA.device_volume_percent()
+        try do
+            input_percent =
+                PA.default_source()
+                |> PA.find_source()
+                |> PA.device_volume_percent()
 
-        output_percent =
-            PA.default_sink()
-            |> PA.find_sink()
-            |> PA.device_volume_percent()
+            output_percent =
+                PA.default_sink()
+                |> PA.find_sink()
+                |> PA.device_volume_percent()
 
-        Phoenix.PubSub.broadcast(Auto.PubSub, "volumes", {:volumes, %{source: input_percent, sink: output_percent}})
-        Process.send_after(self(), :check_volumes, @check_interval)
+            Phoenix.PubSub.broadcast(Auto.PubSub, "volumes", {:volumes, %{source: input_percent, sink: output_percent}})
+            Process.send_after(self(), :check_volumes, @check_interval)
+            rescue
+                e ->
+                    IO.inspect(e, label: "pulse audio good?")
+        end
         {:noreply, state}
     end
 
