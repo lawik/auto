@@ -29,6 +29,7 @@ defmodule Auto.Application do
       Auto.Devices.Keylights,
       Auto.Devices.Streamdecks,
       {Auto.Sources.Calendars, calendars: calendars},
+      Auto.Sources.Pulseaudio,
       # Start the Endpoint (http/https)
       AutoWeb.Endpoint
       # Start a worker by calling: Auto.Worker.start_link(arg)

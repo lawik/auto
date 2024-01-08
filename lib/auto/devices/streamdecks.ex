@@ -14,11 +14,12 @@ defmodule Auto.Devices.Streamdecks do
     # TODO: Subscribe to events about keylight changes to push those to display
     Phoenix.PubSub.subscribe(Auto.PubSub, "calendar")
     Phoenix.PubSub.subscribe(Auto.PubSub, "computer")
+    Phoenix.PubSub.subscribe(Auto.PubSub, "volumes")
 
     send(self(), :check_devices)
     send(self(), :poll)
     strip = Auto.Render.new_strip()
-    {:ok, %{pedal: nil, plus: nil, show_play?: true, unmuted?: true, strip: strip}}
+    {:ok, %{pedal: nil, plus: nil, show_play?: true, unmuted?: true, strip: strip, input_volume: "0%", output_volume: "0%"}}
   end
 
   # Detect new devices, ensure started
@@ -182,6 +183,14 @@ defmodule Auto.Devices.Streamdecks do
     end
 
     {:noreply, %{state | unmuted?: not state.unmuted?}}
+  end
+
+  def handle_info({:volumes, %{source: input_percent, sink: output_percent}}, state) do
+      input = Icons.from_text(input_percent)
+      output = Icons.from_text(output_percent)
+      state.plus.module.set_key_image(state.plus, 7, input)
+      state.plus.module.set_key_image(state.plus, 6, output)
+    {:noreply, %{state | input_volume: input_percent, output_volume: output_percent}}
   end
 
   defp broadcast(nil, _), do: nil

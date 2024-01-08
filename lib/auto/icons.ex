@@ -15,4 +15,13 @@ defmodule Auto.Icons do
     |> Image.compose!(img, x: 10, y: 10)
     |> Image.write!(:memory, suffix: ".jpg", quality: 100)
   end
+
+  @font_size 32
+  def from_text(text) do
+    t = Image.Text.text!(text, font_size: @font_size)
+
+    Image.new!(120, 120)
+    |> Image.compose!(t, x: 10, y: 10)
+    |> Image.write!(:memory, suffix: ".jpg", quality: 100)
+  end
 end
