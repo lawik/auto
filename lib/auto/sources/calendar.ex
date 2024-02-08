@@ -104,7 +104,7 @@ defmodule Auto.Sources.Calendars do
     now = DateTime.utc_now()
 
     Enum.reject(events, fn %{dtend: dtend} ->
-      DateTime.compare(now, dtend) == :gt
+      is_nil(dtend) or DateTime.compare(now, dtend) == :gt
     end)
   end
 
