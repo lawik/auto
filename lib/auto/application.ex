@@ -28,6 +28,7 @@ defmodule Auto.Application do
       Auto.Sinks.Computer,
       Auto.Devices.Keylights,
       Auto.Devices.Streamdecks,
+      Auto.Devices.Cameras,
       {Auto.Sources.Calendars, calendars: calendars},
       Auto.Sources.Pulseaudio,
       # Start the Endpoint (http/https)

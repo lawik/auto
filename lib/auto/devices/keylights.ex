@@ -6,8 +6,9 @@ defmodule Auto.Devices.Keylights do
     GenServer.start_link(__MODULE__, opts, opts)
   end
 
-  def init(opts) do
+  def init(_opts) do
     Phoenix.PubSub.subscribe(Auto.PubSub, "input")
+    Phoenix.PubSub.subscribe(Auto.PubSub, "cameras")
     send(self(), :check_devices)
     {:ok, %{keylights: []}}
   end
@@ -16,6 +17,18 @@ defmodule Auto.Devices.Keylights do
     devices = Keylight.discover()
     Process.send_after(self(), :check_devices, @check_interval)
     {:noreply, %{state | keylights: devices}}
+  end
+
+  def handle_info(:cameras_stopped, state) do
+    IO.puts("keylights received cameras stopped")
+    Keylight.off(state.keylights)
+    {:noreply, state}
+  end
+
+  def handle_info(:cameras_started, state) do
+    IO.puts("keylights received cameras started")
+    Keylight.on(state.keylights)
+    {:noreply, state}
   end
 
   def handle_info({:plus, message}, state) do
