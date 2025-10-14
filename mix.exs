@@ -58,7 +58,8 @@ defmodule Auto.MixProject do
       {:streamdex, github: "lawik/streamdex"},
       {:dotool, path: "../dotool_elixir"},
       {:bs_icons, path: "../bs_icons"},
-      {:req, "~> 0.5"}
+      {:req, "~> 0.5"},
+      {:curl_req, "~> 0.100.1"}
     ]
   end
 

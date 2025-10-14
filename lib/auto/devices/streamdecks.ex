@@ -2,6 +2,7 @@ defmodule Auto.Devices.Streamdecks do
   use GenServer
 
   alias Auto.Icons
+  require Logger
 
   @icon_on "#00ffff"
   @icon_off "#ffff00"
@@ -19,6 +20,7 @@ defmodule Auto.Devices.Streamdecks do
     Phoenix.PubSub.subscribe(Auto.PubSub, "computer")
     Phoenix.PubSub.subscribe(Auto.PubSub, "volumes")
     Phoenix.PubSub.subscribe(Auto.PubSub, "cameras")
+    Phoenix.PubSub.subscribe(Auto.PubSub, "airquality")
 
     send(self(), :check_devices)
     send(self(), :poll)
@@ -217,11 +219,26 @@ defmodule Auto.Devices.Streamdecks do
   end
 
   def handle_info({:volumes, %{source: input_percent, sink: output_percent}}, state) do
-    input = Icons.from_text(input_percent)
-    output = Icons.from_text(output_percent)
+    input = Icons.big_text(input_percent)
+    output = Icons.big_text(output_percent)
     state.plus.module.set_key_image(state.plus, 7, input)
     state.plus.module.set_key_image(state.plus, 6, output)
     {:noreply, %{state | input_volume: input_percent, output_volume: output_percent}}
+  end
+
+  def handle_info({:air_quality_data, data}, state) do
+    co2_color =
+      cond do
+        data.co2 < 600 -> "#00ffff"
+        data.co2 < 800 -> "#ff00ff"
+        data.co2 < 900 -> "#ffff00"
+        true -> "#00ff00"
+      end
+
+    output = Icons.double_text({"#{data.temperature}°", "#00ffff"}, {data.co2, co2_color})
+
+    state.plus.module.set_key_image(state.plus, 5, output)
+    {:noreply, state}
   end
 
   def handle_info(_, state) do

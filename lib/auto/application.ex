@@ -31,6 +31,8 @@ defmodule Auto.Application do
       Auto.Devices.Cameras,
       {Auto.Sources.Calendars, calendars: calendars},
       Auto.Sources.Pulseaudio,
+      {Auto.Sources.Fellowes,
+       token: System.fetch_env!("FELLOWES_AUTH"), url: System.fetch_env!("FELLOWES_DEVICE_URL")},
       # Start the Endpoint (http/https)
       AutoWeb.Endpoint
       # Start a worker by calling: Auto.Worker.start_link(arg)
