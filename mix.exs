@@ -56,8 +56,9 @@ defmodule Auto.MixProject do
       {:image, github: "elixir-image/image", override: true},
       {:keylight, github: "lawik/keylight"},
       {:streamdex, github: "lawik/streamdex"},
-      {:dotool, github: "lawik/dotool_elixir"},
-      {:bs_icons, path: "../bs_icons"}
+      {:dotool, path: "../dotool_elixir"},
+      {:bs_icons, path: "../bs_icons"},
+      {:req, "~> 0.5"}
     ]
   end
 
