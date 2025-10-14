@@ -3,6 +3,9 @@ defmodule Auto.Devices.Streamdecks do
 
   alias Auto.Icons
 
+  @icon_on "#00ffff"
+  @icon_off "#ffff00"
+
   @check_interval 10_000
   @poll_interval 100
   def start_link(opts) do
@@ -58,11 +61,11 @@ defmodule Auto.Devices.Streamdecks do
       if is_nil(state.plus) and plus do
         plus = Streamdex.start(plus)
 
-        on = Icons.i("lightbulb")
-        off = Icons.i("lightbulb-off")
-        auto_on = Icons.i("lightbulb-fill")
-        play = Icons.i("play-circle")
-        unmuted = Icons.i("mic")
+        on = Icons.i("lightbulb", @icon_on)
+        off = Icons.i("lightbulb-off", @icon_off)
+        auto_on = Icons.i("lightbulb-fill", @icon_on)
+        play = Icons.i("play-circle", @icon_on)
+        unmuted = Icons.i("mic", @icon_on)
 
         plus.module.set_key_image(plus, 0, on)
         plus.module.set_key_image(plus, 1, off)
@@ -173,10 +176,10 @@ defmodule Auto.Devices.Streamdecks do
   def handle_info(:toggle_play, state) do
     if state.plus do
       if state.show_play? do
-        pause = Icons.i("pause-circle")
+        pause = Icons.i("pause-circle", @icon_on)
         state.plus.module.set_key_image(state.plus, 2, pause)
       else
-        play = Icons.i("play-circle")
+        play = Icons.i("play-circle", @icon_off)
         state.plus.module.set_key_image(state.plus, 2, play)
       end
     end
@@ -188,9 +191,9 @@ defmodule Auto.Devices.Streamdecks do
     if state.plus do
       icon =
         if on? do
-          Icons.i("lightbulb-fill")
+          Icons.i("lightbulb-fill", @icon_on)
         else
-          Icons.i("lightbulb-off-fill")
+          Icons.i("lightbulb-off-fill", @icon_off)
         end
 
       state.plus.module.set_key_image(state.plus, 4, icon)
@@ -202,10 +205,10 @@ defmodule Auto.Devices.Streamdecks do
   def handle_info(:toggle_mute, state) do
     if state.plus do
       if state.unmuted? do
-        mute = Icons.i("mic-mute")
+        mute = Icons.i("mic-mute", @icon_off)
         state.plus.module.set_key_image(state.plus, 3, mute)
       else
-        mic = Icons.i("mic")
+        mic = Icons.i("mic", @icon_on)
         state.plus.module.set_key_image(state.plus, 3, mic)
       end
     end

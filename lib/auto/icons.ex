@@ -1,11 +1,14 @@
 defmodule Auto.Icons do
   import BsIcons, only: [svg_icon: 1, color: 2, size: 3, to_png: 1]
 
-  def i(icon) do
+  @icon_color "#00ffff"
+  @text_color "#00ffff"
+
+  def i(icon, color \\ @icon_color) do
     img =
       icon
       |> svg_icon()
-      |> color("white")
+      |> color(color)
       |> size(100, 100)
       |> to_png()
       |> Image.from_binary()
@@ -17,8 +20,8 @@ defmodule Auto.Icons do
   end
 
   @font_size 32
-  def from_text(text) do
-    t = Image.Text.text!(text, font_size: @font_size)
+  def from_text(text, color \\ @text_color) do
+    t = Image.Text.text!(text, font_size: @font_size, text_fill_color: color)
 
     Image.new!(120, 120)
     |> Image.compose!(t, x: 10, y: 10)

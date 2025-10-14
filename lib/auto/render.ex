@@ -11,6 +11,11 @@ defmodule Auto.Render do
               next_stop: nil
   end
 
+  @text_color "#00ffff"
+  @text_highlight_color "#ff00ff"
+  @text_highlight_secondary_color "#a900a9"
+  @text_secondary_color "#00a9a9"
+
   alias Auto.Render.Strip
 
   def new_strip do
@@ -46,12 +51,14 @@ defmodule Auto.Render do
   def render_strip(strip) do
     date =
       Image.Text.text!(strip.date,
-        font_size: @font_size
+        font_size: @font_size,
+        text_fill_color: @text_highlight_color
       )
 
     day_time =
       Image.Text.text!("#{strip.day} #{strip.time}",
-        font_size: @font_size
+        font_size: @font_size,
+        text_fill_color: @text_highlight_secondary_color
       )
 
     current =
@@ -59,7 +66,7 @@ defmodule Auto.Render do
         Image.new!(1, 1)
       else
         "Current: #{strip.current}"
-        |> Image.Text.text!(font_size: @font_size)
+        |> Image.Text.text!(font_size: @font_size, text_fill_color: @text_color)
       end
 
     next =
@@ -69,7 +76,7 @@ defmodule Auto.Render do
         "Next: #{strip.next}"
         |> Image.Text.text!(
           font_size: @font_size,
-          text_fill_color: "#a9a9a9"
+          text_fill_color: @text_secondary_color
         )
       end
 
