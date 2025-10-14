@@ -29,8 +29,6 @@ defmodule Auto.Render do
   end
 
   def current(strip, current) do
-    IO.inspect(current)
-
     %{strip | current: current}
   end
 

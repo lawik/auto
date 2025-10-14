@@ -9,7 +9,8 @@ defmodule Auto.Devices.Cameras do
 
   def init(opts) do
     send(self(), :check_cameras)
-    {:ok, %{in_use?: false, times: 0}}
+    Phoenix.PubSub.subscribe(Auto.PubSub, "input")
+    {:ok, %{in_use?: false, times: 0, control_lights?: true}}
   end
 
   def handle_info(:check_cameras, state) do
@@ -28,7 +29,6 @@ defmodule Auto.Devices.Cameras do
         string ->
           not (string
                |> String.trim()
-               |> IO.inspect(label: "camera status")
                |> String.ends_with?("0"))
       end
 
@@ -39,12 +39,16 @@ defmodule Auto.Devices.Cameras do
         {true, true} -> state.times + 1
       end
 
-    case {state.in_use?, in_use?, times} |> IO.inspect(label: "camera change?") do
+    case {state.in_use?, in_use?, times} do
       {true, false, _} ->
-        Phoenix.PubSub.broadcast(Auto.PubSub, "cameras", :cameras_stopped)
+        if state.control_lights? do
+          Phoenix.PubSub.broadcast(Auto.PubSub, "cameras", :cameras_stopped)
+        end
 
       {_, true, times} when times >= @times ->
-        Phoenix.PubSub.broadcast(Auto.PubSub, "cameras", :cameras_started)
+        if state.control_lights? do
+          Phoenix.PubSub.broadcast(Auto.PubSub, "cameras", :cameras_started)
+        end
 
       _ ->
         :ok
@@ -52,6 +56,18 @@ defmodule Auto.Devices.Cameras do
 
     Process.send_after(self(), :check_cameras, @check_interval)
     {:noreply, %{state | in_use?: in_use?, times: times}}
+  end
+
+  def handle_info({:plus, %{event: :button, part: :keys, states: states}}, state) do
+    case Enum.at(states, 4) do
+      :down ->
+        control_lights? = !state.control_lights?
+        Phoenix.PubSub.broadcast(Auto.PubSub, "cameras", {:control_lights?, control_lights?})
+        {:noreply, %{state | control_lights?: control_lights?}}
+
+      _ ->
+        {:noreply, state}
+    end
   end
 
   def handle_info(_, state) do

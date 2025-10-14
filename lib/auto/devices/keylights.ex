@@ -20,13 +20,11 @@ defmodule Auto.Devices.Keylights do
   end
 
   def handle_info(:cameras_stopped, state) do
-    IO.puts("keylights received cameras stopped")
     Keylight.off(state.keylights)
     {:noreply, state}
   end
 
   def handle_info(:cameras_started, state) do
-    IO.puts("keylights received cameras started")
     Keylight.on(state.keylights)
     {:noreply, state}
   end

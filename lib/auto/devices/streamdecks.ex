@@ -15,11 +15,22 @@ defmodule Auto.Devices.Streamdecks do
     Phoenix.PubSub.subscribe(Auto.PubSub, "calendar")
     Phoenix.PubSub.subscribe(Auto.PubSub, "computer")
     Phoenix.PubSub.subscribe(Auto.PubSub, "volumes")
+    Phoenix.PubSub.subscribe(Auto.PubSub, "cameras")
 
     send(self(), :check_devices)
     send(self(), :poll)
     strip = Auto.Render.new_strip()
-    {:ok, %{pedal: nil, plus: nil, show_play?: true, unmuted?: true, strip: strip, input_volume: "0%", output_volume: "0%"}}
+
+    {:ok,
+     %{
+       pedal: nil,
+       plus: nil,
+       show_play?: true,
+       unmuted?: true,
+       strip: strip,
+       input_volume: "0%",
+       output_volume: "0%"
+     }}
   end
 
   # Detect new devices, ensure started
@@ -49,6 +60,7 @@ defmodule Auto.Devices.Streamdecks do
 
         on = Icons.i("lightbulb")
         off = Icons.i("lightbulb-off")
+        auto_on = Icons.i("lightbulb-fill")
         play = Icons.i("play-circle")
         unmuted = Icons.i("mic")
 
@@ -56,6 +68,7 @@ defmodule Auto.Devices.Streamdecks do
         plus.module.set_key_image(plus, 1, off)
         plus.module.set_key_image(plus, 2, play)
         plus.module.set_key_image(plus, 3, unmuted)
+        plus.module.set_key_image(plus, 4, auto_on)
 
         img =
           state.strip
@@ -171,6 +184,21 @@ defmodule Auto.Devices.Streamdecks do
     {:noreply, %{state | show_play?: not state.show_play?}}
   end
 
+  def handle_info({:control_lights?, on?}, state) do
+    if state.plus do
+      icon =
+        if on? do
+          Icons.i("lightbulb-fill")
+        else
+          Icons.i("lightbulb-off-fill")
+        end
+
+      state.plus.module.set_key_image(state.plus, 4, icon)
+    end
+
+    {:noreply, state}
+  end
+
   def handle_info(:toggle_mute, state) do
     if state.plus do
       if state.unmuted? do
@@ -186,17 +214,20 @@ defmodule Auto.Devices.Streamdecks do
   end
 
   def handle_info({:volumes, %{source: input_percent, sink: output_percent}}, state) do
-      input = Icons.from_text(input_percent)
-      output = Icons.from_text(output_percent)
-      state.plus.module.set_key_image(state.plus, 7, input)
-      state.plus.module.set_key_image(state.plus, 6, output)
+    input = Icons.from_text(input_percent)
+    output = Icons.from_text(output_percent)
+    state.plus.module.set_key_image(state.plus, 7, input)
+    state.plus.module.set_key_image(state.plus, 6, output)
     {:noreply, %{state | input_volume: input_percent, output_volume: output_percent}}
+  end
+
+  def handle_info(_, state) do
+    {:noreply, state}
   end
 
   defp broadcast(nil, _), do: nil
 
   defp broadcast(result, device_type) do
-    IO.inspect({device_type, result})
     Phoenix.PubSub.broadcast(Auto.PubSub, "input", {device_type, result})
   end
 end

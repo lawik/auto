@@ -1,49 +1,56 @@
 defmodule Auto.Sources.Pulseaudio do
-    use GenServer
+  use GenServer
 
-    alias Auto.Pulseaudio, as: PA
+  alias Auto.Pulseaudio, as: PA
 
-    @check_interval 20_000
-    def start_link(opts) do
-        GenServer.start_link(__MODULE__, opts, opts)
+  @check_interval 20_000
+  def start_link(opts) do
+    GenServer.start_link(__MODULE__, opts, opts)
+  end
+
+  def init(_opts) do
+    Phoenix.PubSub.subscribe(Auto.PubSub, "input")
+    send(self(), :check_volumes)
+    {:ok, %{}}
+  end
+
+  def handle_info(:check_volumes, state) do
+    try do
+      input_percent =
+        PA.default_source()
+        |> PA.find_source()
+        |> PA.device_volume_percent()
+
+      output_percent =
+        PA.default_sink()
+        |> PA.find_sink()
+        |> PA.device_volume_percent()
+
+      Phoenix.PubSub.broadcast(
+        Auto.PubSub,
+        "volumes",
+        {:volumes, %{source: input_percent, sink: output_percent}}
+      )
+
+      Process.send_after(self(), :check_volumes, @check_interval)
+    rescue
+      e ->
+        IO.inspect(e, label: "pulse audio good?")
     end
 
-    def init(_opts) do
-        Phoenix.PubSub.subscribe(Auto.PubSub, "input")
-        send(self(), :check_volumes)
-        {:ok, %{}}
-    end
-
-    def handle_info(:check_volumes, state) do
-        try do
-            input_percent =
-                PA.default_source()
-                |> PA.find_source()
-                |> PA.device_volume_percent()
-
-            output_percent =
-                PA.default_sink()
-                |> PA.find_sink()
-                |> PA.device_volume_percent()
-
-            Phoenix.PubSub.broadcast(Auto.PubSub, "volumes", {:volumes, %{source: input_percent, sink: output_percent}})
-            Process.send_after(self(), :check_volumes, @check_interval)
-            rescue
-                e ->
-                    IO.inspect(e, label: "pulse audio good?")
-        end
-        {:noreply, state}
-    end
+    {:noreply, state}
+  end
 
   def handle_info({:plus, message}, state) do
     # TODO: Emit events about the changes
     case message do
       %{event: :turn, part: :knobs, states: [_, _, change_out, change_in]} ->
-        IO.inspect(change_in, label: "input change")
-        IO.inspect(change_out, label: "output change")
+        #        IO.inspect(change_in, label: "input change")
+        #        IO.inspect(change_out, label: "output change")
         handle_input(change_in)
         handle_output(change_out)
         send(self(), :check_volumes)
+
       _ ->
         nil
     end
