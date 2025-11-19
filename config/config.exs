@@ -59,6 +59,17 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+config :homex,
+  broker: [host: "192.168.2.223", port: 1883],
+  device: [
+    name: "Office Workstation",
+    manufacturer: "Underjord"
+  ],
+  entities: [
+    Auto.HomeAssistant.OfficeCO2,
+    Auto.HomeAssistant.OfficeTemperature
+  ]
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

@@ -34,7 +34,8 @@ defmodule Auto.Application do
       {Auto.Sources.Fellowes,
        token: System.fetch_env!("FELLOWES_AUTH"), url: System.fetch_env!("FELLOWES_DEVICE_URL")},
       # Start the Endpoint (http/https)
-      AutoWeb.Endpoint
+      AutoWeb.Endpoint,
+      Homex
       # Start a worker by calling: Auto.Worker.start_link(arg)
       # {Auto.Worker, arg}
     ]

@@ -59,7 +59,9 @@ defmodule Auto.MixProject do
       {:dotool, path: "../dotool_elixir"},
       {:bs_icons, path: "../bs_icons"},
       {:req, "~> 0.5"},
-      {:curl_req, "~> 0.100.1"}
+      {:curl_req, "~> 0.100.1"},
+      {:homex, github: "kevinschweikert/homex", ref: "472246b5f5b9adce6ca84c29f575f58f91cf5486"},
+      {:cowlib, "~> 2.13", override: true}
     ]
   end
 
