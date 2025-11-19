@@ -60,10 +60,11 @@ config :logger, :console,
 config :phoenix, :json_library, Jason
 
 config :homex,
-  broker: [host: "192.168.2.223", port: 1883],
+  broker: [host: "192.168.2.223", port: 1883, username: "nerves", password: "ofsteel"],
   device: [
     name: "Office Workstation",
-    manufacturer: "Underjord"
+    manufacturer: "Underjord",
+    model: "Workstation"
   ],
   entities: [
     Auto.HomeAssistant.OfficeCO2,
