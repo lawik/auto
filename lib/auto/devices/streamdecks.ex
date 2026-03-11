@@ -8,7 +8,6 @@ defmodule Auto.Devices.Streamdecks do
   @icon_off "#ffff00"
 
   @check_interval 10_000
-  @poll_interval 100
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, opts)
   end
@@ -23,13 +22,14 @@ defmodule Auto.Devices.Streamdecks do
     Phoenix.PubSub.subscribe(Auto.PubSub, "airquality")
 
     send(self(), :check_devices)
-    send(self(), :poll)
     strip = Auto.Render.new_strip()
 
     {:ok,
      %{
        pedal: nil,
        plus: nil,
+       plus_reader: nil,
+       pedal_reader: nil,
        show_play?: true,
        unmuted?: true,
        strip: strip,
@@ -52,16 +52,23 @@ defmodule Auto.Devices.Streamdecks do
         d.config.name == "Stream Deck +"
       end)
 
-    new_pedal =
+    me = self()
+
+    {new_pedal, pedal_reader} =
       if is_nil(state.pedal) and pedal do
-        Streamdex.start(pedal)
+        started = Streamdex.start(pedal)
+        reader = spawn_link(fn -> read_loop(started, :pedal, me) end)
+        Logger.info("Started blocking reader for pedal")
+        {started, reader}
       else
-        state.pedal
+        {state.pedal, state.pedal_reader}
       end
 
-    new_plus =
+    {new_plus, plus_reader} =
       if is_nil(state.plus) and plus do
         plus = Streamdex.start(plus)
+        plus_reader = spawn_link(fn -> read_loop(plus, :plus, me) end)
+        Logger.info("Started blocking reader for plus")
 
         on = Icons.i("lightbulb", @icon_on)
         off = Icons.i("lightbulb-off", @icon_off)
@@ -81,30 +88,18 @@ defmodule Auto.Devices.Streamdecks do
 
         plus.module.set_lcd_image(plus, 0, 0, 800, 100, img)
 
-        plus
+        {plus, plus_reader}
       else
-        state.plus
+        {state.plus, state.plus_reader}
       end
 
     Process.send_after(self(), :check_devices, @check_interval)
-    {:noreply, %{state | plus: new_plus, pedal: new_pedal}}
+    {:noreply, %{state | plus: new_plus, pedal: new_pedal, plus_reader: plus_reader, pedal_reader: pedal_reader}}
   end
 
-  def handle_info(:poll, state) do
-    if state.plus do
-      state.plus
-      |> state.plus.module.poll()
-      |> broadcast(:plus)
-    end
-
-    if state.pedal do
-      state.pedal
-      |> state.pedal.module.poll()
-      |> broadcast(:pedal)
-    end
-
-    Process.send_after(self(), :poll, @poll_interval)
-    {:noreply, %{state | strip: Auto.Render.refresh_now(state.strip)}}
+  def handle_info({:hid_report, device_type, result}, state) do
+    broadcast(result, device_type)
+    {:noreply, state}
   end
 
   def handle_info({:current_events, events}, state) do
@@ -243,6 +238,17 @@ defmodule Auto.Devices.Streamdecks do
 
   def handle_info(_, state) do
     {:noreply, state}
+  end
+
+  defp read_loop(device, device_type, parent) do
+    case device.module.poll(device) do
+      nil ->
+        read_loop(device, device_type, parent)
+
+      result ->
+        send(parent, {:hid_report, device_type, result})
+        read_loop(device, device_type, parent)
+    end
   end
 
   defp broadcast(nil, _), do: nil
