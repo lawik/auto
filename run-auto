@@ -1,5 +1,10 @@
 #!/bin/bash
+set -e
 
-source /home/lawik/.asdf/asdf.sh
+cd "$(dirname "$0")"
+
+# Make the mise-managed elixir/mix/erlang available without an interactive shell.
+export PATH="$HOME/.local/share/mise/shims:$PATH"
+
 source env.sh
-mix run --no-halt
+exec mix run --no-halt

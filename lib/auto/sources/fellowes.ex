@@ -39,9 +39,7 @@ defmodule Auto.Sources.Fellowes do
   def handle_info(:check_data, state) do
     state =
       try do
-        state = check_data(state)
-        Phoenix.PubSub.broadcast(Auto.PubSub, "airquality", {:air_quality_data, state.data})
-        state
+        check_data(state)
       rescue
         e ->
           Logger.error("Error fetching data from Fellowes: #{inspect(e)}")
@@ -66,12 +64,6 @@ defmodule Auto.Sources.Fellowes do
           "accept-encoding" => ["gzip"]
         }
       )
-      #  |> CurlReq.inspect()
-      #  |> then(fn req ->
-      #    {req, result} = Req.Request.run_request(req)
-      #    IO.inspect(req, label: "request")
-      #    result
-      #  end)
       |> Req.get()
 
     case response do
@@ -84,6 +76,7 @@ defmodule Auto.Sources.Fellowes do
           voc: get_in(body, ["shadow", "reported", "properties", "voc"])
         }
 
+        Phoenix.PubSub.broadcast(Auto.PubSub, "airquality", {:air_quality_data, data})
         %{state | data: data}
 
       err ->
