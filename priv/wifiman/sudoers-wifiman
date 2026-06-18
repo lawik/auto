@@ -1,0 +1,6 @@
+# Let the streamdeck-auto user service (runs as lawik) control
+# wifiman-desktop without a password: the Home Assistant switch
+# (Auto.HomeAssistant.WifimanService) and the idle KillTeleport sink.
+# `systemctl is-active` needs no privileges and is intentionally omitted.
+# Install to: /etc/sudoers.d/wifiman-auto  (mode 0440)
+lawik ALL=(root) NOPASSWD: /usr/bin/systemctl start wifiman-desktop.service, /usr/bin/systemctl stop wifiman-desktop.service, /usr/bin/systemctl restart wifiman-desktop.service

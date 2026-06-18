@@ -68,7 +68,8 @@ config :homex,
   ],
   entities: [
     Auto.HomeAssistant.OfficeCO2,
-    Auto.HomeAssistant.OfficeTemperature
+    Auto.HomeAssistant.OfficeTemperature,
+    Auto.HomeAssistant.WifimanService
   ]
 
 # Import environment specific config. This must remain at the bottom

@@ -60,7 +60,12 @@ defmodule Auto.MixProject do
       {:bs_icons, path: "../bs_icons"},
       {:req, "~> 0.5"},
       {:curl_req, "~> 0.100.1"},
-      {:homex, github: "kevinschweikert/homex", ref: "472246b5f5b9adce6ca84c29f575f58f91cf5486"},
+      {:homex, github: "lawik/homex", branch: "fix/registry-start-order"},
+      # Override emqtt to a git dep so its rebar.config.script honours
+      # BUILD_WITHOUT_QUIC and drops the quicer C-NIF (needs cmake). The hex
+      # emqtt lists quicer as a hard dep, so the env trick only works via git.
+      {:emqtt,
+       github: "emqx/emqtt", tag: "1.14.7", override: true, system_env: [{"BUILD_WITHOUT_QUIC", "1"}]},
       {:cowlib, "~> 2.13", override: true}
     ]
   end
