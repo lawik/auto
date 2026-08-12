@@ -26,12 +26,14 @@ defmodule Auto.Application do
       {Finch, name: Auto.Finch},
       Dotool,
       Auto.Sinks.Computer,
-      Auto.Sinks.KillTeleport,
+      # Disabled: wifiman-desktop.service is not installed on this machine.
+      # Auto.Sinks.KillTeleport,
       Auto.Devices.Keylights,
       Auto.Devices.Streamdecks,
       Auto.Devices.Cameras,
       {Auto.Sources.Calendars, calendars: calendars},
-      Auto.Sources.Idle,
+      # Disabled: drove swayidle only to feed Auto.Sinks.KillTeleport, now off.
+      # Auto.Sources.Idle,
       Auto.Sources.Pulseaudio,
       {Auto.Sources.Fellowes,
        token: System.fetch_env!("FELLOWES_AUTH"), url: System.fetch_env!("FELLOWES_DEVICE_URL")},
