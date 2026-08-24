@@ -7,6 +7,8 @@ defmodule Auto.Sources.Fellowes do
     Sample response in priv/fellowes.json
 
     values? pm2.5 tvoc co2 air_quality temperature humidity pm1 pm10 air_pressure
+
+    The pm*_in readings are the intake side (room air), pm*_out is post-filter.
   """
 
   require Logger
@@ -31,9 +33,6 @@ defmodule Auto.Sources.Fellowes do
     url = Keyword.fetch!(opts, :url)
     send(self(), :check_data)
     {:ok, %{token: token, url: url, data: %{}}}
-  end
-
-  def handle_call(request, from, state) do
   end
 
   def handle_info(:check_data, state) do
@@ -68,12 +67,18 @@ defmodule Auto.Sources.Fellowes do
 
     case response do
       {:ok, %{status: 200, body: body}} ->
+        props = get_in(body, ["shadow", "reported", "properties"]) || %{}
+
         data = %{
-          co2: get_in(body, ["shadow", "reported", "properties", "co2"]),
-          humidity: get_in(body, ["shadow", "reported", "properties", "humidity"]),
-          pressure: get_in(body, ["shadow", "reported", "properties", "pressure"]),
-          temperature: get_in(body, ["shadow", "reported", "properties", "temperature"]),
-          voc: get_in(body, ["shadow", "reported", "properties", "voc"])
+          co2: props["co2"],
+          humidity: props["humidity"],
+          pressure: props["pressure"],
+          temperature: props["temperature"],
+          voc: props["voc"],
+          # Particulate matter, µg/m³, as measured on the intake (ie. the room)
+          pm1_0: props["pm1_0_in"],
+          pm2_5: props["pm2_5_in"],
+          pm10: props["pm10_in"]
         }
 
         Phoenix.PubSub.broadcast(Auto.PubSub, "airquality", {:air_quality_data, data})

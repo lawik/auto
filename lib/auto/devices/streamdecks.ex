@@ -94,7 +94,15 @@ defmodule Auto.Devices.Streamdecks do
       end
 
     Process.send_after(self(), :check_devices, @check_interval)
-    {:noreply, %{state | plus: new_plus, pedal: new_pedal, plus_reader: plus_reader, pedal_reader: pedal_reader}}
+
+    {:noreply,
+     %{
+       state
+       | plus: new_plus,
+         pedal: new_pedal,
+         plus_reader: plus_reader,
+         pedal_reader: pedal_reader
+     }}
   end
 
   def handle_info({:hid_report, device_type, result}, state) do
@@ -221,16 +229,19 @@ defmodule Auto.Devices.Streamdecks do
     {:noreply, %{state | input_volume: input_percent, output_volume: output_percent}}
   end
 
-  def handle_info({:air_quality_data, data}, state) do
-    co2_color =
-      cond do
-        data.co2 < 600 -> "#00ffff"
-        data.co2 < 800 -> "#ff00ff"
-        data.co2 < 900 -> "#ffff00"
-        true -> "#00ff00"
-      end
+  def handle_info({:air_quality_data, _data}, %{plus: nil} = state) do
+    {:noreply, state}
+  end
 
-    output = Icons.double_text({"#{data.temperature}°", "#00ffff"}, {data.co2, co2_color})
+  def handle_info({:air_quality_data, data}, state) do
+    color = air_quality_color(data)
+
+    output =
+      Icons.triple_text([
+        {"#{value(data.temperature)}°", color},
+        {value(data.co2), color},
+        {pm_line(data), color}
+      ])
 
     state.plus.module.set_key_image(state.plus, 5, output)
     {:noreply, state}
@@ -239,6 +250,49 @@ defmodule Auto.Devices.Streamdecks do
   def handle_info(_, state) do
     {:noreply, state}
   end
+
+  # PM1.0 | PM2.5 | PM10, all in µg/m³ so the unit is left off the key.
+  defp pm_line(data) do
+    Enum.map_join([data.pm1_0, data.pm2_5, data.pm10], " | ", &value/1)
+  end
+
+  defp value(nil), do: "-"
+  defp value(v), do: v
+
+  # The whole key takes the colour of its worst reading, so a glance answers
+  # "is the air in here OK" without having to read which number moved.
+  # Temperature is deliberately not in here — it has no bad level defined.
+  defp air_quality_color(data) do
+    [
+      level(data.co2, 600, 800, 900),
+      level(data.pm1_0, 9, 35, 55),
+      level(data.pm2_5, 9, 35, 55),
+      level(data.pm10, 54, 154, 254)
+    ]
+    |> Enum.reject(&is_nil/1)
+    |> case do
+      # Every reading missing: grey, rather than a cyan all-clear we can't back up.
+      [] -> "#888888"
+      levels -> levels |> Enum.max() |> level_color()
+    end
+  end
+
+  defp level(nil, _good, _ok, _poor), do: nil
+
+  defp level(v, good, ok, poor) do
+    cond do
+      v < good -> 0
+      v < ok -> 1
+      v < poor -> 2
+      true -> 3
+    end
+  end
+
+  # Same palette as the rest of the deck: cyan is fine, green is the alarm.
+  defp level_color(0), do: "#00ffff"
+  defp level_color(1), do: "#ff00ff"
+  defp level_color(2), do: "#ffff00"
+  defp level_color(3), do: "#00ff00"
 
   defp read_loop(device, device_type, parent) do
     case device.module.poll(device) do
