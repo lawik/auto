@@ -22,6 +22,7 @@ defmodule Auto.Devices.Streamdecks do
     Phoenix.PubSub.subscribe(Auto.PubSub, "airquality")
 
     send(self(), :check_devices)
+    send(self(), :refresh_clock)
     strip = Auto.Render.new_strip()
 
     {:ok,
@@ -105,6 +106,16 @@ defmodule Auto.Devices.Streamdecks do
      }}
   end
 
+  # The strip clock is only as fresh as the last render, so drive one a minute.
+  # Scheduled against the wall clock rather than a fixed 60s so the displayed
+  # minute turns over when it actually changes, and does not drift.
+  def handle_info(:refresh_clock, state) do
+    strip = Auto.Render.refresh_now(state.strip)
+    render_strip(state.plus, strip)
+    Process.send_after(self(), :refresh_clock, ms_until_next_minute())
+    {:noreply, %{state | strip: strip}}
+  end
+
   def handle_info({:hid_report, device_type, result}, state) do
     broadcast(result, device_type)
     {:noreply, state}
@@ -120,13 +131,7 @@ defmodule Auto.Devices.Streamdecks do
           |> DateTime.to_iso8601()
           |> String.slice(11, 5)
 
-        stop =
-          e.dtend
-          |> DateTime.shift_zone!("Europe/Stockholm")
-          |> DateTime.to_iso8601()
-          |> String.slice(11, 5)
-
-        "#{start}-#{stop} #{e.summary}"
+        "#{start} #{e.summary}"
       end)
       |> Enum.join(", ")
 
@@ -151,12 +156,6 @@ defmodule Auto.Devices.Streamdecks do
       |> Enum.map(fn e ->
         start =
           e.dtstart
-          |> DateTime.shift_zone!("Europe/Stockholm")
-          |> DateTime.to_iso8601()
-          |> String.slice(11, 5)
-
-        stop =
-          e.dtend
           |> DateTime.shift_zone!("Europe/Stockholm")
           |> DateTime.to_iso8601()
           |> String.slice(11, 5)
@@ -236,19 +235,37 @@ defmodule Auto.Devices.Streamdecks do
   def handle_info({:air_quality_data, data}, state) do
     color = air_quality_color(data)
 
-    output =
-      Icons.triple_text([
-        {"#{value(data.temperature)}°", color},
-        {value(data.co2), color},
-        {pm_line(data), color}
-      ])
-
+    # Temperature and CO2 keep the key to themselves; particulates and VOC go
+    # to the strip, where there is room for them.
+    output = Icons.double_text({"#{value(data.temperature)}°", color}, {value(data.co2), color})
     state.plus.module.set_key_image(state.plus, 5, output)
-    {:noreply, state}
+
+    strip =
+      Auto.Render.air(state.strip, %{
+        pm: pm_line(data),
+        voc: "VOC #{value(data.voc)}",
+        color: color
+      })
+
+    render_strip(state.plus, strip)
+
+    {:noreply, %{state | strip: strip}}
   end
 
   def handle_info(_, state) do
     {:noreply, state}
+  end
+
+  defp render_strip(nil, _strip), do: :ok
+
+  defp render_strip(plus, strip) do
+    plus.module.set_lcd_image(plus, 0, 0, 800, 100, Auto.Render.render_strip(strip))
+  end
+
+  defp ms_until_next_minute do
+    %{second: second, microsecond: {microsecond, _}} = DateTime.utc_now()
+    # Floor at a beat so a timer firing a hair early cannot spin.
+    max(60_000 - second * 1_000 - div(microsecond, 1_000), 250)
   end
 
   # PM1.0 | PM2.5 | PM10, all in µg/m³ so the unit is left off the key.
@@ -259,15 +276,21 @@ defmodule Auto.Devices.Streamdecks do
   defp value(nil), do: "-"
   defp value(v), do: v
 
-  # The whole key takes the colour of its worst reading, so a glance answers
-  # "is the air in here OK" without having to read which number moved.
-  # Temperature is deliberately not in here — it has no bad level defined.
+  # Air quality gets one colour across both the key and the strip column, so a
+  # glance answers "is the air in here OK" without reading which number moved.
+  #
+  # PM2.5 and VOC bands are the purifier's own, lifted from the blofeld
+  # firmware's auto_fan_speed/3 — they are what the unit itself steps the fan
+  # on, so the colour changes when the hardware agrees something is happening.
+  # VOC is an SGP40 index (100 = its rolling 24h baseline), not a concentration.
+  # CO2 keeps the bands that were already here. Temperature has no defined bad
+  # level so it does not participate; neither do PM1.0/PM10, which the unit
+  # itself ignores for fan control.
   defp air_quality_color(data) do
     [
       level(data.co2, 600, 800, 900),
-      level(data.pm1_0, 9, 35, 55),
-      level(data.pm2_5, 9, 35, 55),
-      level(data.pm10, 54, 154, 254)
+      level(data.pm2_5, 8, 15, 35),
+      level(data.voc, 203, 241, 279)
     ]
     |> Enum.reject(&is_nil/1)
     |> case do

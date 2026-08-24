@@ -8,7 +8,10 @@ defmodule Auto.Render do
               current_stop: nil,
               next: nil,
               next_start: nil,
-              next_stop: nil
+              next_stop: nil,
+              pm: nil,
+              voc: nil,
+              air_color: nil
   end
 
   @text_color "#00ffff"
@@ -37,6 +40,14 @@ defmodule Auto.Render do
     %{strip | current: current}
   end
 
+  @doc """
+  Set the air quality column. Colour is decided by the caller, which owns the
+  thresholds; this only lays it out.
+  """
+  def air(strip, %{pm: pm, voc: voc, color: color}) do
+    %{strip | pm: pm, voc: voc, air_color: color}
+  end
+
   def next(strip, next) do
     next =
       case String.trim(next) do
@@ -48,6 +59,19 @@ defmodule Auto.Render do
   end
 
   @font_size 32
+  # Events run a little smaller than the date/air columns: they are the longest
+  # strings on the strip and the only ones that can overrun their space.
+  @event_font_size 28
+  @strip_width 800
+
+  # The air column sits where "Current:"/"Next:" used to print, so dropping
+  # those labels costs the events nothing: they start further right but no
+  # longer carry a prefix.
+  @col_left 5
+  @col_air 205
+  @col_air_width 120
+  @col_events 335
+
   def render_strip(strip) do
     date =
       Image.Text.text!(strip.date,
@@ -61,33 +85,23 @@ defmodule Auto.Render do
         text_fill_color: @text_highlight_secondary_color
       )
 
-    current =
-      if is_nil(strip.current) || String.trim(strip.current) == "" do
-        Image.new!(1, 1)
-      else
-        "Current: #{strip.current}"
-        |> Image.Text.text!(font_size: @font_size, text_fill_color: @text_color)
-      end
+    current = event_text(strip.current, @text_color)
+    next = event_text(strip.next, @text_secondary_color)
 
-    next =
-      if is_nil(strip.next) || String.trim(strip.next) == "" do
-        Image.new!(1, 1)
-      else
-        "Next: #{strip.next}"
-        |> Image.Text.text!(
-          font_size: @font_size,
-          text_fill_color: @text_secondary_color
-        )
-      end
+    air_color = strip.air_color || @text_color
+    pm = air_text(strip.pm, air_color)
+    voc = air_text(strip.voc, air_color)
 
     img =
-      Image.new!(800, 100)
+      Image.new!(@strip_width, 100)
       |> Image.compose!(
         [
-          {date, [x: 5, y: 10]},
-          {day_time, [x: 5, y: 60]},
-          {current, [x: 205, y: 10]},
-          {next, [x: 205, y: 60]}
+          {date, [x: @col_left, y: 10]},
+          {day_time, [x: @col_left, y: 60]},
+          {pm, [x: @col_air, y: 10]},
+          {voc, [x: @col_air, y: 60]},
+          {current, [x: @col_events, y: 10]},
+          {next, [x: @col_events, y: 60]}
         ],
         x: :left,
         y: :top
@@ -95,6 +109,27 @@ defmodule Auto.Render do
 
     img
     |> Image.write!(:memory, suffix: ".jpg", quality: 100)
+  end
+
+  defp event_text(nil, _color), do: Image.new!(1, 1)
+
+  defp event_text(text, color) do
+    if String.trim(text) == "" do
+      Image.new!(1, 1)
+    else
+      Image.Text.text!(text, font_size: @event_font_size, text_fill_color: color)
+    end
+  end
+
+  defp air_text(nil, _color), do: Image.new!(1, 1)
+
+  defp air_text(text, color) do
+    Auto.Text.fit(text,
+      font_size: @font_size,
+      min_font_size: 18,
+      max_width: @col_air_width,
+      color: color
+    )
   end
 
   defp day_nice(1), do: "Mon"
