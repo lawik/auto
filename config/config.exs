@@ -68,7 +68,13 @@ config :homex,
   ],
   entities: [
     Auto.HomeAssistant.OfficeCO2,
-    Auto.HomeAssistant.OfficeTemperature
+    Auto.HomeAssistant.OfficeTemperature,
+    Auto.HomeAssistant.OfficePM1,
+    Auto.HomeAssistant.OfficePM25,
+    Auto.HomeAssistant.OfficePM10,
+    Auto.HomeAssistant.OfficeVOC,
+    Auto.HomeAssistant.OfficeHumidity,
+    Auto.HomeAssistant.OfficePressure
     # Disabled: wifiman-desktop.service is not installed on this machine.
     # Auto.HomeAssistant.WifimanService
   ]

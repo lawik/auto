@@ -10,8 +10,7 @@ defmodule Auto.Render do
               next_start: nil,
               next_stop: nil,
               pm: nil,
-              voc: nil,
-              air_color: nil
+              voc: nil
   end
 
   @text_color "#00ffff"
@@ -41,11 +40,12 @@ defmodule Auto.Render do
   end
 
   @doc """
-  Set the air quality column. Colour is decided by the caller, which owns the
-  thresholds; this only lays it out.
+  Set the air quality column. Each line is a list of `{text, colour}` segments
+  so every reading carries its own colour; the caller owns the thresholds, this
+  only lays them out.
   """
-  def air(strip, %{pm: pm, voc: voc, color: color}) do
-    %{strip | pm: pm, voc: voc, air_color: color}
+  def air(strip, %{pm: pm, voc: voc}) do
+    %{strip | pm: pm, voc: voc}
   end
 
   def next(strip, next) do
@@ -88,9 +88,8 @@ defmodule Auto.Render do
     current = event_text(strip.current, @text_color)
     next = event_text(strip.next, @text_secondary_color)
 
-    air_color = strip.air_color || @text_color
-    pm = air_text(strip.pm, air_color)
-    voc = air_text(strip.voc, air_color)
+    pm = air_text(strip.pm)
+    voc = air_text(strip.voc)
 
     img =
       Image.new!(@strip_width, 100)
@@ -121,14 +120,13 @@ defmodule Auto.Render do
     end
   end
 
-  defp air_text(nil, _color), do: Image.new!(1, 1)
+  defp air_text(nil), do: Image.new!(1, 1)
 
-  defp air_text(text, color) do
-    Auto.Text.fit(text,
+  defp air_text(segments) do
+    Auto.Text.fit_row(segments,
       font_size: @font_size,
       min_font_size: 18,
-      max_width: @col_air_width,
-      color: color
+      max_width: @col_air_width
     )
   end
 

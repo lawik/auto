@@ -37,18 +37,31 @@ defmodule Auto.Icons do
     |> Image.write!(:memory, suffix: ".jpg", quality: 100)
   end
 
-  def double_text({main_text, main_color}, {sub_text, sub_color}) do
-    t =
-      Image.Text.text!(to_string(main_text),
-        font_size: @big_font_size,
-        text_fill_color: main_color
-      )
+  @key_size 120
+  @key_padding 4
+  @key_min_font_size 16
 
-    s = Image.Text.text!(to_string(sub_text), font_size: @font_size, text_fill_color: sub_color)
+  # Two rows on one key. Each row is a list of `{text, colour}` segments and is
+  # fit to the key width, so a row can take an extra reading and shrink to suit
+  # rather than overflowing. Rows are centred in their half of the key so that
+  # shrinking one does not unbalance the pair.
+  def key_rows([top, bottom]) do
+    top = key_row(top, @big_font_size)
+    bottom = key_row(bottom, @font_size)
 
-    Image.new!(120, 120)
-    |> Image.compose!(t, x: :center, y: 24)
-    |> Image.compose!(s, x: :center, y: -24)
+    Image.new!(@key_size, @key_size)
+    |> Image.compose!(top, x: :center, y: centre_on(top, 40))
+    |> Image.compose!(bottom, x: :center, y: centre_on(bottom, 86))
     |> Image.write!(:memory, suffix: ".jpg", quality: 100)
   end
+
+  defp key_row(segments, font_size) do
+    Auto.Text.fit_row(segments,
+      font_size: font_size,
+      min_font_size: @key_min_font_size,
+      max_width: @key_size - 2 * @key_padding
+    )
+  end
+
+  defp centre_on(image, y), do: max(y - div(Image.height(image), 2), 0)
 end

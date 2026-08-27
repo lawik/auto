@@ -6,6 +6,26 @@ defmodule Auto.Devices.Streamdecks do
 
   @icon_on "#00ffff"
   @icon_off "#ffff00"
+  @text_neutral "#00ffff"
+  @text_dim "#4a4a4a"
+
+  # Each reading is coloured against its own published bands, so the display
+  # says which figure moved rather than only that something did.
+  #
+  # PM2.5 and PM10 use the US EPA AQI breakpoints (PM2.5 revised 2024, dropping
+  # "good" from 12 to 9). PM1.0 has no regulatory standard anywhere, so it
+  # borrows the PM2.5 bands: PM2.5 limits already cover PM1.0 mass, since the
+  # fractions are nested, which makes this a conservative read rather than an
+  # invented one — PM1.0 <= PM2.5 means it can only ever be the gentler colour.
+  #
+  # VOC is an SGP40 index, not a concentration: Sensirion define 100 as the
+  # sensor's own rolling 24h average, below that better than usual and above it
+  # deteriorating. Bands are anchored there, and 200/300 bracket the points
+  # where the purifier's own firmware steps its fan (203 and 316).
+  @pm2_5_bands {9, 35, 55}
+  @pm10_bands {55, 155, 255}
+  @voc_bands {100, 200, 300}
+  @co2_bands {600, 800, 900}
 
   @check_interval 10_000
   def start_link(opts) do
@@ -233,18 +253,31 @@ defmodule Auto.Devices.Streamdecks do
   end
 
   def handle_info({:air_quality_data, data}, state) do
-    color = air_quality_color(data)
-
     # Temperature and CO2 keep the key to themselves; particulates and VOC go
     # to the strip, where there is room for them.
-    output = Icons.double_text({"#{value(data.temperature)}°", color}, {value(data.co2), color})
+    output =
+      Icons.key_rows([
+        [
+          {value(data.temperature), @text_neutral},
+          {"° ", @text_dim},
+          reading(data.humidity, &humidity_level/1),
+          {"%", @text_dim}
+        ],
+        [{value(data.co2), level_color(level(data.co2, @co2_bands))}]
+      ])
+
     state.plus.module.set_key_image(state.plus, 5, output)
 
     strip =
       Auto.Render.air(state.strip, %{
-        pm: pm_line(data),
-        voc: "VOC #{value(data.voc)}",
-        color: color
+        pm: [
+          reading(data.pm1_0, @pm2_5_bands),
+          {" | ", @text_dim},
+          reading(data.pm2_5, @pm2_5_bands),
+          {" | ", @text_dim},
+          reading(data.pm10, @pm10_bands)
+        ],
+        voc: [{"VOC ", @text_dim}, reading(data.voc, @voc_bands)]
       })
 
     render_strip(state.plus, strip)
@@ -268,41 +301,34 @@ defmodule Auto.Devices.Streamdecks do
     max(60_000 - second * 1_000 - div(microsecond, 1_000), 250)
   end
 
-  # PM1.0 | PM2.5 | PM10, all in µg/m³ so the unit is left off the key.
-  defp pm_line(data) do
-    Enum.map_join([data.pm1_0, data.pm2_5, data.pm10], " | ", &value/1)
-  end
-
   defp value(nil), do: "-"
   defp value(v), do: v
 
-  # Air quality gets one colour across both the key and the strip column, so a
-  # glance answers "is the air in here OK" without reading which number moved.
-  #
-  # PM2.5 and VOC bands are the purifier's own, lifted from the blofeld
-  # firmware's auto_fan_speed/3 — they are what the unit itself steps the fan
-  # on, so the colour changes when the hardware agrees something is happening.
-  # VOC is an SGP40 index (100 = its rolling 24h baseline), not a concentration.
-  # CO2 keeps the bands that were already here. Temperature has no defined bad
-  # level so it does not participate; neither do PM1.0/PM10, which the unit
-  # itself ignores for fan control.
-  defp air_quality_color(data) do
-    [
-      level(data.co2, 600, 800, 900),
-      level(data.pm2_5, 8, 15, 35),
-      level(data.voc, 203, 241, 279)
-    ]
-    |> Enum.reject(&is_nil/1)
-    |> case do
-      # Every reading missing: grey, rather than a cyan all-clear we can't back up.
-      [] -> "#888888"
-      levels -> levels |> Enum.max() |> level_color()
+  defp reading(value, level_fun) when is_function(level_fun, 1) do
+    {value(value), level_color(level_fun.(value))}
+  end
+
+  defp reading(value, bands) do
+    {value(value), level_color(level(value, bands))}
+  end
+
+  # Humidity is the one reading that is bad at both ends, so it cannot use the
+  # monotonic bands. Good is ASHRAE 55's occupied range of 30-60%; the upper
+  # steps track mould risk, which the EPA puts at 65% and above.
+  defp humidity_level(nil), do: nil
+
+  defp humidity_level(h) do
+    cond do
+      h >= 30 and h < 60 -> 0
+      h >= 25 and h < 65 -> 1
+      h >= 20 and h < 70 -> 2
+      true -> 3
     end
   end
 
-  defp level(nil, _good, _ok, _poor), do: nil
+  defp level(nil, _bands), do: nil
 
-  defp level(v, good, ok, poor) do
+  defp level(v, {good, ok, poor}) do
     cond do
       v < good -> 0
       v < ok -> 1
@@ -312,6 +338,8 @@ defmodule Auto.Devices.Streamdecks do
   end
 
   # Same palette as the rest of the deck: cyan is fine, green is the alarm.
+  # A missing reading goes grey rather than showing an all-clear we can't back up.
+  defp level_color(nil), do: "#888888"
   defp level_color(0), do: "#00ffff"
   defp level_color(1), do: "#ff00ff"
   defp level_color(2), do: "#ffff00"
