@@ -66,7 +66,18 @@ defmodule Auto.MixProject do
       # emqtt lists quicer as a hard dep, so the env trick only works via git.
       {:emqtt,
        github: "emqx/emqtt", tag: "1.14.7", override: true, system_env: [{"BUILD_WITHOUT_QUIC", "1"}]},
-      {:cowlib, "~> 2.13", override: true}
+      {:cowlib, "~> 2.13", override: true},
+      {:home_base, github: "lawik/home_base"},
+      # home_base points emerge at a local path; use the fork branch with its
+      # scene-forwarding and input-injection hooks instead.
+      {:emerge, github: "lawik/emerge", branch: "home-m8-forwarding", override: true},
+      # Local fixes pending upstream: the encoder NIF rejects frames shorter than the
+      # stream format (was an out-of-bounds read, segfaulting the VM on empty camera
+      # frames).
+      {:membrane_h264_ffmpeg_plugin, path: "../membrane_h264_ffmpeg_plugin", override: true},
+      # Camera capture skips the empty packets FFmpeg's v4l2 device returns for
+      # corrupted buffers instead of sending them on as frames.
+      {:membrane_camera_capture_plugin, path: "../membrane_camera_capture_plugin", override: true}
     ]
   end
 

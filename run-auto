@@ -7,4 +7,11 @@ cd "$(dirname "$0")"
 export PATH="$HOME/.local/share/mise/shims:$PATH"
 
 source env.sh
-exec mix run --no-halt
+# Home cluster node: home@<tailscale ip>. The cookie is the cluster's Tailscale tag; it
+# is not a secret, the tailnet ACLs on tag:homecluster are what keep the cluster closed.
+# Peers find its port through epmd; distribution only binds the tailnet address. Remote shell:
+#   iex --name dbg@127.0.0.1 --cookie tag:homecluster --remsh home@$(tailscale ip -4)
+export HOME_IP="$(tailscale ip -4)"
+exec elixir --name "home@$HOME_IP" --cookie tag:homecluster \
+  --erl "-kernel inet_dist_use_interface {${HOME_IP//./,}}" \
+  -S mix run --no-halt

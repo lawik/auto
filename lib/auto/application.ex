@@ -18,6 +18,8 @@ defmodule Auto.Application do
     children = [
       # Start the Telemetry supervisor
       AutoWeb.Telemetry,
+      # Log VM memory usage periodically to trace leaks
+      Auto.MemoryLogger,
       # Start the Ecto repository
       Auto.Repo,
       # Start the PubSub system

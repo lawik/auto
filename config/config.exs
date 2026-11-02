@@ -81,4 +81,61 @@ config :homex,
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
+# Home cluster node (lawik/home_base). Capture hardware is :on_request: the mic and camera
+# are only opened while a lease holds them. The physical displays are not vended; emerge
+# only ever draws in a Wayland window, and only while something is shown on "win0".
+# Structs can't be named here (config is evaluated before emerge compiles), hence the
+# {:window, fields} tuple.
+config :home_base,
+  device_id: "monolith",
+  data_dir: Path.expand("~/.local/share/auto/home_base"),
+  capabilities: [
+    %{
+      id: "mic0",
+      kind: :audio_in,
+      availability: :on_request,
+      adapter: Home.Adapters.Audio.PortAudioIn
+    },
+    %{
+      id: "spk0",
+      kind: :audio_out,
+      availability: :on_request,
+      adapter: Home.Adapters.Audio.PortAudioOut
+    },
+    %{
+      id: "cam0",
+      kind: :video_in,
+      availability: :on_request,
+      adapter: Home.Adapters.Video.Camera,
+      # Video negotiation reads w/h/fps as x264's size and rate on this node: without them
+      # the stream's size is unknown and small sinks (a watch) aren't sent a scaled stream.
+      # The Cam Link only delivers its HDMI input's mode, so these must match that source.
+      meta: %{
+        device: "/dev/v4l/by-id/usb-Elgato_Cam_Link_4K_0004A17E28000-video-index0",
+        w: 1920,
+        h: 1080,
+        fps: 30
+      }
+    },
+    %{
+      id: "win0",
+      kind: :display,
+      meta: %{w: 1280, h: 720},
+      adapter:
+        {Home.Adapters.Display,
+         output: {:window, backend: :wayland, title: "Home", size: {1280, 720}}}
+    }
+  ],
+  # The same static peer list the Nerves nodes use (their names resolve over mDNS).
+  cluster: [
+    backend:
+      {Home.Cluster.Static,
+       nodes: [
+         :"nerves_phone@nerves-6a3a.local",
+         :"nerves_phone@nerves-a835.local",
+         :"hello_watch@nerves-0453.local",
+         :"home@192.168.4.148"
+       ]}
+  ]
+
 import_config "#{config_env()}.exs"

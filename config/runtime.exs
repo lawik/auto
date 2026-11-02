@@ -20,6 +20,12 @@ if System.get_env("PHX_SERVER") do
   config :auto, AutoWeb.Endpoint, server: true
 end
 
+# Receive home cluster media (and rendered assets) on the tailnet address run-auto found.
+if ip = System.get_env("HOME_IP") do
+  {:ok, ip} = :inet.parse_address(String.to_charlist(ip))
+  config :home_base, media: [ip: ip]
+end
+
 if config_env() == :prod do
   database_path =
     System.get_env("DATABASE_PATH") ||
