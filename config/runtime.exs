@@ -24,6 +24,7 @@ end
 if ip = System.get_env("HOME_IP") do
   {:ok, ip} = :inet.parse_address(String.to_charlist(ip))
   config :home_base, media: [ip: ip]
+  config :auto, Auto.EntityApi, ip: ip
 end
 
 if config_env() == :prod do

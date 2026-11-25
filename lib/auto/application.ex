@@ -41,7 +41,13 @@ defmodule Auto.Application do
        token: System.fetch_env!("FELLOWES_AUTH"), url: System.fetch_env!("FELLOWES_DEVICE_URL")},
       # Start the Endpoint (http/https)
       AutoWeb.Endpoint,
-      Homex
+      Homex,
+      {Auto.HomeAssistant.Rest,
+       url: System.get_env("HOME_ASSISTANT_URL", "http://ha:8123"),
+       username: System.fetch_env!("HOME_ASSISTANT_USER"),
+       password: System.fetch_env!("HOME_ASSISTANT_PASSWORD")},
+      # Tailnet-only HTTP API for scripting selected HA entities (see config :auto, Auto.EntityApi)
+      Auto.EntityApi
       # Start a worker by calling: Auto.Worker.start_link(arg)
       # {Auto.Worker, arg}
     ]

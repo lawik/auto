@@ -10,6 +10,15 @@ import Config
 config :auto,
   ecto_repos: [Auto.Repo]
 
+# Home Assistant entities scriptable over the tailnet through Auto.EntityApi, as
+# short name => entity id. The listener binds HOME_IP (see config/runtime.exs).
+config :auto, Auto.EntityApi,
+  port: 4040,
+  entities: %{
+    # Board Automation Outlet 1: IKEA TRETAKT plug, HA device 089ee15ab40f98751a85cec62b092820
+    "board-outlet-1" => "switch.0xd4fe28fffe01b64b"
+  }
+
 # Configures the endpoint
 config :auto, AutoWeb.Endpoint,
   url: [host: "localhost"],
